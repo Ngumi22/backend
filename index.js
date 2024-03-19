@@ -18,9 +18,8 @@ app.use(csrf({ cookie: true }));
 
 app.use(cors({
     origin: 'https://frontend-rho-sand.vercel.app',
-    credentials: true // enable CORS credentials (cookies, authorization headers)
+    credentials: true
 }));
-
 // Middleware to add CSRF token to response locals
 app.use((req, res, next) => {
     res.locals.csrfToken = req.csrfToken();
