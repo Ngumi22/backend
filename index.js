@@ -12,10 +12,14 @@ const cookieParser = require('cookie-parser');
 
 // Middleware
 app.use(express.json());
-app.use(cors());
 app.use(helmet());
 app.use(cookieParser());
 app.use(csrf({ cookie: true }));
+
+app.use(cors({
+    origin: 'https://frontend-rho-sand.vercel.app',
+    credentials: true // enable CORS credentials (cookies, authorization headers)
+}));
 
 // Middleware to add CSRF token to response locals
 app.use((req, res, next) => {
