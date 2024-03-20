@@ -1,18 +1,66 @@
 const products = require("../products");
-const express = require("express");
-const cors = require("cors");
-
-
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const csrf = require('csurf');
+const rateLimit = require("express-rate-limit");
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const { body, validationResult } = require('express-validator');
 const app = express();
+const cookieParser = require('cookie-parser');
 
 
-app.use(cors());
+app.set('trust proxy', 1);
+// Middleware
+app.use(express.json());
+app.use(helmet());
+app.use(cookieParser());
+app.use(csrf({ cookie: true }));
 
+app.use(cors({
+  origin: 'https://frontend-rho-sand.vercel.app',
+  credentials: true
+}));
 
+// Middleware to add CSRF token to response locals
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later',
+});
+
+app.use(limiter);
+
+// Authentication middleware
+function authenticateToken(req, res, next) {
+  const token = req.headers['authorization'];
+  if (token == null) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Input validation middleware
+const validateRequest = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
 
 // Routes
 app.get("/", (req, res) => {
-  res.send("Welcome to Bernzz");
+  res.send("Welcome");
 });
 
 app.get("/products", (req, res) => {
@@ -20,17 +68,13 @@ app.get("/products", (req, res) => {
 });
 
 app.get("/products/category", (req, res) => {
-  const categories = [
-    ...new Set(products.map((product) => product.category.toLowerCase())),
-  ];
+  const categories = [...new Set(products.map(product => product.category.toLowerCase()))];
   res.send(categories);
 });
 
 app.get("/products/category/:category", (req, res) => {
   const { category } = req.params;
-  const itemsInCategory = products.filter(
-    (product) => product.category.toLowerCase() === category.toLowerCase()
-  );
+  const itemsInCategory = products.filter(product => product.category.toLowerCase() === category.toLowerCase());
 
   if (itemsInCategory.length > 0) {
     res.send(itemsInCategory);
@@ -38,8 +82,36 @@ app.get("/products/category/:category", (req, res) => {
     res.status(404).send(`No items found in the category: ${category}`);
   }
 });
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
+app.post("/login", validateRequest, (req, res) => {
+  // Authenticate user and generate JWT token
+  // Example: Assume req.body contains username and password
+  const { username, password } = req.body;
+  // Check username and password against database
+  // If authenticated, generate JWT token and send it back
+  const token = jwt.sign({ username: username }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set expiration time
+  res.cookie('jwt', token, { httpOnly: true, secure: true }); // Set secure cookie
+  res.json({ token: token });
 });
-module.exports = app;
+
+// Example protected route using authentication middleware
+app.get("/protected-route", authenticateToken, (req, res) => {
+  // Only accessible with a valid JWT token
+  res.send("Protected route accessed successfully");
+});
+
+// Hashing passwords middleware
+const saltRounds = 10;
+app.post("/register", validateRequest, (req, res) => {
+  const { username, password } = req.body;
+  bcrypt.hash(password, saltRounds, (err, hash) => {
+    // Store hashed password in database
+    // Example: User.create({ username: username, password: hash });
+    res.send("User registered Successfully");
+  });
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
