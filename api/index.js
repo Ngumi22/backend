@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const csrf = require('csurf');
+const csrf = require('csurf'); // Import csurf here
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(helmet());
 app.use(cookieParser());
 app.use(cors()); // Enable CORS for all routes
-const csrf = require('csurf');
+
 // Trust Proxy
 app.set('trust proxy', 1);
 
@@ -35,6 +35,7 @@ app.use((req, res, next) => {
   res.locals.csrfToken = req.csrfToken(); // Now req.csrfToken() should be defined
   next();
 });
+
 // Routes
 app.get("/", (req, res) => {
   res.send("Welcome");
