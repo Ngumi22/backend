@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const csrf = require('csurf');
-const rateLimit = require("express-rate-limit");
+const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { body, validationResult } = require('express-validator');
@@ -15,9 +15,7 @@ app.use(express.json());
 app.use(helmet());
 app.use(cookieParser());
 app.use(csrf({ cookie: true }));
-app.use(cors({
-  origin: 'https://frontend-rho-sand.vercel.app',
-}));
+app.use(cors()); // Enable CORS for all routes
 
 // Trust Proxy
 app.set('trust proxy', 1);
