@@ -1,4 +1,3 @@
-const products = require("../products");
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,34 +6,28 @@ const rateLimit = require("express-rate-limit");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { body, validationResult } = require('express-validator');
-const app = express();
 const cookieParser = require('cookie-parser');
 
+const app = express();
 
-app.set('trust proxy', 1);
 // Middleware
 app.use(express.json());
 app.use(helmet());
 app.use(cookieParser());
 app.use(csrf({ cookie: true }));
-
 app.use(cors({
   origin: 'https://frontend-rho-sand.vercel.app',
-  credentials: true
 }));
 
-// Middleware to add CSRF token to response locals
-app.use((req, res, next) => {
-  res.locals.csrfToken = req.csrfToken();
-  next();
-});
+// Trust Proxy
+app.set('trust proxy', 1);
 
+// Rate Limiter
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later',
 });
-
 app.use(limiter);
 
 // Authentication middleware
@@ -57,6 +50,12 @@ const validateRequest = (req, res, next) => {
   }
   next();
 };
+
+// Middleware to add CSRF token to response locals
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 
 // Routes
 app.get("/", (req, res) => {
